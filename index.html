@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ResumeAI — ATS Resume Optimizer</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Geist:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #faf9f7;
+    --white: #ffffff;
+    --ink: #1a1916;
+    --ink2: #4a4845;
+    --ink3: #9a9895;
+    --line: #e8e6e2;
+    --accent: #2563eb;
+    --accent-light: #eff4ff;
+    --green: #16a34a;
+    --green-light: #f0fdf4;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --amber: #d97706;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 1px 4px rgba(0,0,0,0.04);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Geist', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Nav ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(250,249,247,0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    padding: 0 32px;
+    height: 56px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-logo {
+    font-family: 'Fraunces', serif;
+    font-weight: 500; font-size: 1.1rem; letter-spacing: -0.02em;
+    color: var(--ink);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .nav-logo span { color: var(--accent); }
+  .nav-tag {
+    font-size: 11px; color: var(--ink3); font-weight: 400;
+    border: 1px solid var(--line); border-radius: 100px;
+    padding: 3px 10px; letter-spacing: 0.03em;
+  }
+
+  /* ── Layout ── */
+  .page { max-width: 680px; margin: 0 auto; padding: 56px 24px 100px; }
+
+  /* ── Hero ── */
+  .hero { margin-bottom: 48px; }
+  .hero h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    font-weight: 400; line-height: 1.15;
+    letter-spacing: -0.03em; color: var(--ink);
+    margin-bottom: 12px;
+  }
+  .hero h1 em { font-style: italic; color: var(--accent); }
+  .hero p { font-size: 0.95rem; color: var(--ink2); line-height: 1.65; max-width: 480px; }
+
+  /* ── Progress bar ── */
+  .progress {
+    display: flex; gap: 0; margin-bottom: 36px;
+    border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; background: var(--white);
+    box-shadow: var(--shadow);
+  }
+  .prog-step {
+    flex: 1; padding: 12px 0; text-align: center;
+    font-size: 12px; font-weight: 400; color: var(--ink3);
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    border-right: 1px solid var(--line); transition: all 0.2s;
+    background: transparent;
+  }
+  .prog-step:last-child { border-right: none; }
+  .prog-step.active { color: var(--accent); background: var(--accent-light); }
+  .prog-step.done { color: var(--green); background: var(--green-light); }
+  .prog-num {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 1px solid currentColor; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 500; flex-shrink: 0;
+  }
+  .prog-step.done .prog-num { background: var(--green); color: white; border-color: var(--green); }
+  .prog-step.done .prog-num::after { content: '✓'; font-size: 10px; }
+  .prog-step.done .prog-label { display: none; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--white); border: 1px solid var(--line);
+    border-radius: var(--radius); margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .card-head {
+    padding: 18px 20px 0;
+    font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink3);
+  }
+  .card-body { padding: 14px 20px 20px; }
+
+  /* ── Drop zone ── */
+  .dropzone {
+    border: 1.5px dashed var(--line); border-radius: 8px;
+    padding: 36px 20px; text-align: center;
+    cursor: pointer; position: relative;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--accent); background: var(--accent-light);
+  }
+  .dropzone input {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .dz-icon { font-size: 1.6rem; margin-bottom: 10px; opacity: 0.6; }
+  .dz-main { font-size: 14px; color: var(--ink2); margin-bottom: 4px; }
+  .dz-main strong { color: var(--accent); font-weight: 500; }
+  .dz-sub { font-size: 12px; color: var(--ink3); }
+
+  .file-chip {
+    display: flex; align-items: center; gap: 10px; margin-top: 12px;
+    background: var(--green-light); border: 1px solid #bbf7d0;
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 13px; color: var(--green);
+  }
+  .file-chip-remove {
+    margin-left: auto; cursor: pointer; color: var(--ink3);
+    background: none; border: none; font-size: 16px; line-height: 1;
+    padding: 0 4px; transition: color 0.15s;
+  }
+  .file-chip-remove:hover { color: var(--red); }
+
+  /* ── Form fields ── */
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-size: 12px; color: var(--ink2); margin-bottom: 6px; font-weight: 400; }
+
+  input[type="text"], textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--line);
+    border-radius: 7px; padding: 10px 13px;
+    color: var(--ink); font-family: 'Geist', sans-serif;
+    font-size: 14px; font-weight: 300; outline: none; resize: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  input[type="text"]:focus, textarea:focus {
+    border-color: var(--accent); background: var(--white);
+  }
+  input::placeholder, textarea::placeholder { color: var(--ink3); }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
+
+  /* ── Optional toggle ── */
+  .optional-toggle {
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    font-size: 13px; color: var(--ink3); margin-bottom: 14px;
+    user-select: none;
+  }
+  .optional-toggle:hover { color: var(--ink2); }
+  .toggle-icon { transition: transform 0.2s; font-size: 11px; }
+  .toggle-icon.open { transform: rotate(90deg); }
+  .optional-fields { display: none; }
+  .optional-fields.open { display: block; }
+
+  /* ── CTA ── */
+  .btn-primary {
+    width: 100%; padding: 14px;
+    background: var(--ink); color: #faf9f7;
+    border: none; border-radius: 8px;
+    font-family: 'Geist', sans-serif; font-size: 14px; font-weight: 400;
+    cursor: pointer; letter-spacing: 0.01em;
+    transition: background 0.15s, transform 0.1s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-primary:hover:not(:disabled) { background: #2d2c2a; transform: translateY(-1px); }
+  .btn-primary:active:not(:disabled) { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+  /* ── Error ── */
+  .error-box {
+    display: none; background: var(--red-light);
+    border: 1px solid #fecaca; border-radius: 8px;
+    padding: 12px 14px; font-size: 13px; color: var(--red);
+    margin-top: 10px;
+  }
+  .error-box.show { display: block; }
+
+  /* ── Loading ── */
+  #loading { display: none; }
+  #loading.show { display: block; }
+  .load-wrap {
+    background: var(--white); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 48px 32px;
+    text-align: center; box-shadow: var(--shadow);
+  }
+  .load-dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 20px; }
+  .load-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ink); opacity: 0.15;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .load-dot:nth-child(2) { animation-delay: 0.2s; }
+  .load-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.15; transform: scale(0.9); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+  }
+  .load-text { font-size: 14px; color: var(--ink2); }
+  .load-sub { font-size: 12px; color: var(--ink3); margin-top: 6px; }
+
+  /* ── Results ── */
+  #results { display: none; animation: fadeIn 0.4s ease; }
+  #results.show { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+
+  /* Score bar */
+  .score-card {
+    background: var(--white); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 24px;
+    margin-bottom: 12px; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 24px;
+  }
+  .score-badge {
+    width: 72px; height: 72px; border-radius: 50%; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: 'Fraunces', serif;
+    border: 2px solid var(--line);
+  }
+  .score-badge .score-n { font-size: 1.5rem; font-weight: 500; line-height: 1; }
+  .score-badge .score-l { font-size: 10px; color: var(--ink3); font-family: 'Geist', sans-serif; }
+  .score-info { flex: 1; }
+  .score-title { font-family: 'Fraunces', serif; font-size: 1.1rem; font-weight: 400; margin-bottom: 6px; }
+  .score-bar-wrap { height: 4px; background: var(--line); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+  .score-bar { height: 100%; border-radius: 2px; transition: width 1s ease; width: 0; }
+  .score-desc { font-size: 12px; color: var(--ink3); }
+
+  /* Tabs */
+  .tabs {
+    display: flex; gap: 0; background: var(--white);
+    border: 1px solid var(--line); border-radius: var(--radius);
+    overflow: hidden; margin-bottom: 12px; box-shadow: var(--shadow);
+  }
+  .tab {
+    flex: 1; padding: 11px 8px; font-size: 12px; font-weight: 400;
+    color: var(--ink3); border: none; background: none; cursor: pointer;
+    border-right: 1px solid var(--line); transition: all 0.15s;
+    font-family: 'Geist', sans-serif; letter-spacing: 0.01em;
+  }
+  .tab:last-child { border-right: none; }
+  .tab:hover { color: var(--ink); background: var(--bg); }
+  .tab.active { color: var(--ink); background: var(--bg); font-weight: 500; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+
+  /* Resume output */
+  .resume-out {
+    background: var(--white); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 24px;
+    font-size: 13px; line-height: 1.8; color: var(--ink2);
+    white-space: pre-wrap; word-break: break-word;
+    max-height: 480px; overflow-y: auto;
+    box-shadow: var(--shadow);
+  }
+  .resume-out::-webkit-scrollbar { width: 5px; }
+  .resume-out::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+  .btn-secondary {
+    width: 100%; margin-top: 8px; padding: 11px;
+    background: var(--white); border: 1px solid var(--line);
+    border-radius: 8px; color: var(--ink2);
+    font-family: 'Geist', sans-serif; font-size: 13px; font-weight: 400;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-secondary:hover { background: var(--bg); border-color: var(--ink3); color: var(--ink); }
+
+  /* List items */
+  .item-list { display: flex; flex-direction: column; gap: 8px; }
+  .item {
+    background: var(--white); border: 1px solid var(--line);
+    border-radius: 8px; padding: 13px 16px;
+    font-size: 13px; color: var(--ink2); line-height: 1.55;
+    display: flex; gap: 12px; box-shadow: var(--shadow);
+  }
+  .item-dot { color: var(--accent); flex-shrink: 0; margin-top: 2px; font-size: 10px; }
+
+  .chip-wrap { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chip {
+    border: 1px solid var(--line); border-radius: 100px;
+    padding: 5px 13px; font-size: 12px; color: var(--ink2);
+    background: var(--white); box-shadow: var(--shadow);
+  }
+
+  .tip-item {
+    background: var(--white); border: 1px solid var(--line);
+    border-radius: 8px; padding: 13px 16px;
+    font-size: 13px; color: var(--ink2); line-height: 1.55;
+    display: flex; gap: 14px; box-shadow: var(--shadow);
+  }
+  .tip-n {
+    font-family: 'Fraunces', serif; font-size: 0.9rem;
+    font-weight: 300; font-style: italic; color: var(--ink3);
+    flex-shrink: 0; min-width: 18px;
+  }
+
+  /* Reset */
+  .btn-ghost {
+    width: 100%; margin-top: 20px; padding: 12px;
+    background: none; border: 1px solid var(--line);
+    border-radius: 8px; color: var(--ink3);
+    font-family: 'Geist', sans-serif; font-size: 13px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-ghost:hover { color: var(--ink); border-color: var(--ink3); }
+
+  /* Footer note */
+  .note {
+    margin-top: 40px; padding: 16px 20px;
+    border: 1px solid var(--line); border-radius: 8px;
+    font-size: 12px; color: var(--ink3); line-height: 1.6;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Resume<span>AI</span></div>
+  <div class="nav-tag">Free · Powered by Claude</div>
+</nav>
+
+<div class="page">
+
+  <!-- Hero -->
+  <div class="hero">
+    <h1>Make your resume<br /><em>actually get read.</em></h1>
+    <p>Paste your resume, get an ATS-optimized version with stronger bullet points, better keywords, and a quality score — in under 30 seconds.</p>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress" id="progress">
+    <div class="prog-step active" id="ps1">
+      <div class="prog-num">1</div>
+      <span class="prog-label">Upload</span>
+    </div>
+    <div class="prog-step" id="ps2">
+      <div class="prog-num">2</div>
+      <span class="prog-label">Analyzing</span>
+    </div>
+    <div class="prog-step" id="ps3">
+      <div class="prog-num">3</div>
+      <span class="prog-label">Done</span>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div id="form-section">
+    <!-- Upload -->
+    <div class="card">
+      <div class="card-head">Resume file</div>
+      <div class="card-body">
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept=".pdf,.docx,.txt" />
+          <div class="dz-icon">📄</div>
+          <div class="dz-main"><strong>Choose file</strong> or drag it here</div>
+          <div class="dz-sub">PDF, DOCX or TXT · Max 5MB</div>
+        </div>
+        <div class="file-chip" id="fileChip" style="display:none">
+          <span>📎</span>
+          <span id="fileName"></span>
+          <button class="file-chip-remove" onclick="clearFile()" title="Remove">×</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Optional: target role -->
+    <div class="card">
+      <div class="card-body" style="padding-top:18px">
+        <div class="optional-toggle" onclick="toggleOptional()">
+          <span class="toggle-icon" id="toggleIcon">▶</span>
+          Add target job details <span style="font-size:11px;margin-left:4px;border:1px solid var(--line);border-radius:100px;padding:2px 8px">Optional but recommended</span>
+        </div>
+        <div class="optional-fields" id="optionalFields">
+          <div class="field-row">
+            <div class="field">
+              <label>Job title</label>
+              <input type="text" id="jobTitle" placeholder="e.g. Product Manager" />
+            </div>
+            <div class="field">
+              <label>Company</label>
+              <input type="text" id="company" placeholder="e.g. Google" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Job description <span style="color:var(--ink3)">(paste for best keyword matching)</span></label>
+            <textarea id="jobDesc" rows="5" placeholder="Paste the full job description here..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary" id="optimizeBtn" onclick="optimizeResume()">
+      <span>⚡</span> Optimize Resume — Free
+    </button>
+    <div class="error-box" id="errorBox"></div>
+
+    <div class="note">
+      <span>ℹ</span>
+      Your resume is sent to Claude AI for analysis and is not stored on our servers.
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="load-wrap">
+      <div class="load-dots">
+        <div class="load-dot"></div>
+        <div class="load-dot"></div>
+        <div class="load-dot"></div>
+      </div>
+      <div class="load-text" id="loadText">Analyzing your resume…</div>
+      <div class="load-sub">Usually takes 15–25 seconds</div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+    <!-- Score -->
+    <div class="score-card" id="scoreCard">
+      <div class="score-badge" id="scoreBadge">
+        <div class="score-n" id="scoreNum">—</div>
+        <div class="score-l">/100</div>
+      </div>
+      <div class="score-info">
+        <div class="score-title" id="scoreTitle">ATS Score</div>
+        <div class="score-bar-wrap">
+          <div class="score-bar" id="scoreBar"></div>
+        </div>
+        <div class="score-desc" id="scoreDesc">Analysis complete.</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="tab('optimized', this)">Optimized resume</button>
+      <button class="tab" onclick="tab('improvements', this)">What changed</button>
+      <button class="tab" onclick="tab('keywords', this)">Keywords added</button>
+      <button class="tab" onclick="tab('tips', this)">Tips</button>
+    </div>
+
+    <div class="tab-content active" id="tab-optimized">
+      <div class="resume-out" id="resumeOut"></div>
+      <button class="btn-secondary" onclick="copyResume()">Copy to clipboard</button>
+    </div>
+
+    <div class="tab-content" id="tab-improvements">
+      <div class="item-list" id="improvList"></div>
+    </div>
+
+    <div class="tab-content" id="tab-keywords">
+      <p style="font-size:12px;color:var(--ink3);margin-bottom:12px">Added to improve ATS matching for your target role:</p>
+      <div class="chip-wrap" id="keyChips"></div>
+    </div>
+
+    <div class="tab-content" id="tab-tips">
+      <div class="item-list" id="tipsList"></div>
+    </div>
+
+    <button class="btn-ghost" onclick="reset()">↩ Start over</button>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+  const API_BASE = window.location.hostname === 'localhost'
+    ? 'http://localhost:8000'
+    : 'https://YOUR_BACKEND_URL_HERE';
+
+  let file = null;
+
+  // Drop zone
+  const dz = document.getElementById('dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); pick(e.dataTransfer.files[0]); });
+  document.getElementById('fileInput').addEventListener('change', e => pick(e.target.files[0]));
+
+  function pick(f) {
+    if (!f) return;
+    file = f;
+    document.getElementById('fileName').textContent = f.name + ' (' + (f.size/1024).toFixed(0) + ' KB)';
+    document.getElementById('fileChip').style.display = 'flex';
+  }
+  function clearFile() {
+    file = null;
+    document.getElementById('fileChip').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+  }
+
+  // Optional toggle
+  function toggleOptional() {
+    const fields = document.getElementById('optionalFields');
+    const icon = document.getElementById('toggleIcon');
+    fields.classList.toggle('open');
+    icon.classList.toggle('open');
+  }
+
+  // Loading messages
+  const msgs = ['Analyzing your resume…', 'Identifying ATS keywords…', 'Rewriting bullet points…', 'Calculating your score…'];
+  let msgTimer;
+
+  async function optimizeResume() {
+    if (!file) { err('Please upload your resume first.'); return; }
+    clearErr();
+
+    setStep(2);
+    document.getElementById('form-section').style.display = 'none';
+    document.getElementById('results').classList.remove('show');
+    const loading = document.getElementById('loading');
+    loading.classList.add('show');
+
+    let i = 0;
+    msgTimer = setInterval(() => {
+      document.getElementById('loadText').textContent = msgs[i++ % msgs.length];
+    }, 2200);
+
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('job_title', document.getElementById('jobTitle').value);
+      fd.append('job_description', document.getElementById('jobDesc').value);
+
+      const res = await fetch(`${API_BASE}/optimize`, { method: 'POST', body: fd });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.detail || 'Server error'); }
+      const data = await res.json();
+      render(data);
+    } catch(e) {
+      loading.classList.remove('show');
+      document.getElementById('form-section').style.display = 'block';
+      setStep(1);
+      err('Error: ' + e.message);
+    } finally {
+      clearInterval(msgTimer);
+    }
+  }
+
+  function render(d) {
+    document.getElementById('loading').classList.remove('show');
+
+    const score = d.score || 0;
+    document.getElementById('scoreNum').textContent = score;
+
+    const good = score >= 75, mid = score >= 50;
+    const color = good ? '#16a34a' : mid ? '#d97706' : '#dc2626';
+    const badge = document.getElementById('scoreBadge');
+    badge.style.borderColor = color;
+    badge.querySelector('.score-n').style.color = color;
+
+    document.getElementById('scoreTitle').textContent =
+      good ? 'Strong ATS match' : mid ? 'Moderate ATS match' : 'Needs improvement';
+    document.getElementById('scoreDesc').textContent =
+      good ? 'Your resume is well-optimized. Review the changes below.' :
+      mid  ? 'We improved keyword density and bullet point impact.' :
+             'Significant improvements applied to boost your ranking.';
+
+    const bar = document.getElementById('scoreBar');
+    bar.style.background = color;
+    setTimeout(() => bar.style.width = score + '%', 100);
+
+    document.getElementById('resumeOut').textContent = d.optimized_resume || '';
+
+    const impr = d.improvements || [];
+    document.getElementById('improvList').innerHTML = impr.map(s =>
+      `<div class="item"><span class="item-dot">●</span><span>${s}</span></div>`
+    ).join('');
+
+    const kw = d.keywords_added || [];
+    document.getElementById('keyChips').innerHTML = kw.map(k =>
+      `<span class="chip">${k}</span>`
+    ).join('');
+
+    const tips = d.tips || [];
+    document.getElementById('tipsList').innerHTML = tips.map((t, i) =>
+      `<div class="tip-item"><div class="tip-n">${i+1}.</div><div>${t}</div></div>`
+    ).join('');
+
+    setStep(3);
+    document.getElementById('results').classList.add('show');
+  }
+
+  function tab(name, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+
+  function copyResume() {
+    navigator.clipboard.writeText(document.getElementById('resumeOut').textContent).then(() => {
+      const btn = document.querySelector('.btn-secondary');
+      btn.textContent = '✓ Copied';
+      setTimeout(() => btn.textContent = 'Copy to clipboard', 2000);
+    });
+  }
+
+  function reset() {
+    file = null;
+    document.getElementById('fileChip').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+    document.getElementById('jobTitle').value = '';
+    document.getElementById('jobDesc').value = '';
+    document.getElementById('results').classList.remove('show');
+    document.getElementById('form-section').style.display = 'block';
+    clearErr(); setStep(1);
+  }
+
+  function setStep(n) {
+    for (let i = 1; i <= 3; i++) {
+      const s = document.getElementById('ps' + i);
+      s.classList.remove('active', 'done');
+      if (i < n) s.classList.add('done');
+      if (i === n) s.classList.add('active');
+    }
+  }
+
+  function err(m) { const b = document.getElementById('errorBox'); b.textContent = m; b.classList.add('show'); }
+  function clearErr() { document.getElementById('errorBox').classList.remove('show'); }
+</script>
+</body>
+</html>
